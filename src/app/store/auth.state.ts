@@ -64,11 +64,9 @@ export class AuthState {
 
     return this.authService.login(action.identifiant, action.motDePasse).pipe(
       map((response: LoginResponse) => {
-        return ctx.dispatch(new AuthActions.LoginSuccess(
-          response.user,
-          response.accessToken,
-          response.refreshToken
-        ))
+        return ctx.dispatch(
+          new AuthActions.LoginSuccess(response.user, response.accessToken, response.refreshToken)
+        )
       }),
       catchError(error => {
         const errorMsg = error?.error?.message || 'Échec de la connexion'
@@ -82,7 +80,7 @@ export class AuthState {
   loginSuccess(ctx: StateContext<AuthStateModel>, action: AuthActions.LoginSuccess) {
     // Also store tokens in AuthStateService for interceptor access
     this.authService.setSession(action.user, action.accessToken, action.refreshToken)
-    
+
     ctx.patchState({
       accessToken: action.accessToken,
       refreshToken: action.refreshToken,
@@ -106,11 +104,13 @@ export class AuthState {
 
     return this.authService.register(action.payload).pipe(
       map((response: LoginResponse) => {
-        return ctx.dispatch(new AuthActions.RegisterSuccess(
-          response.user,
-          response.accessToken,
-          response.refreshToken
-        ))
+        return ctx.dispatch(
+          new AuthActions.RegisterSuccess(
+            response.user,
+            response.accessToken,
+            response.refreshToken
+          )
+        )
       }),
       catchError(error => {
         const errorMsg = error?.error?.message || "Échec de l'inscription"
@@ -124,7 +124,7 @@ export class AuthState {
   registerSuccess(ctx: StateContext<AuthStateModel>, action: AuthActions.RegisterSuccess) {
     // Also store tokens in AuthStateService for interceptor access
     this.authService.setSession(action.user, action.accessToken, action.refreshToken)
-    
+
     ctx.patchState({
       accessToken: action.accessToken,
       refreshToken: action.refreshToken,

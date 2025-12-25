@@ -49,7 +49,7 @@ function isTokenExpired(token: string): boolean {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]))
     const exp = payload.exp * 1000 // Convert to milliseconds
-    
+
     // Add a small buffer (30 seconds) to account for network latency
     return Date.now() >= exp - 30000
   } catch {
