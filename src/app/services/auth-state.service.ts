@@ -1,88 +1,83 @@
 import { Injectable, signal } from '@angular/core'
 import { User } from '../models/user.model'
 
-const USER_STORAGE_KEY = 'auth.user'
-const ACCESS_TOKEN_KEY = 'auth.accessToken'
-const REFRESH_TOKEN_KEY = 'auth.refreshToken'
-
+/**
+ * AuthStateService - Memory-only token storage
+ *
+ * SECURITY:
+ * - Access token: stored in memory only (not localStorage)
+ * - Refresh token: stored as HttpOnly cookie by backend (not accessible via JS)
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthStateService {
   private readonly _user = signal<User | null>(null)
   private readonly _accessToken = signal<string | null>(null)
-  private readonly _refreshToken = signal<string | null>(null)
-
-  constructor() {
-    this.loadFromStorage()
-  }
-
-  private loadFromStorage(): void {
-    try {
-      const rawUser = localStorage.getItem(USER_STORAGE_KEY)
-      if (rawUser) this._user.set(JSON.parse(rawUser))
-
-      const accessToken = localStorage.getItem(ACCESS_TOKEN_KEY)
-      if (accessToken) this._accessToken.set(accessToken)
-
-      const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
-      if (refreshToken) this._refreshToken.set(refreshToken)
-    } catch {
-      /* ignore */
-    }
-  }
+  private readonly _accessTokenExpiresAt = signal<Date | null>(null)
 
   user = this._user.asReadonly()
   accessToken = this._accessToken.asReadonly()
-  refreshToken = this._refreshToken.asReadonly()
+  accessTokenExpiresAt = this._accessTokenExpiresAt.asReadonly()
 
   setUser(user: User | null): void {
     this._user.set(user)
-    try {
-      if (user) localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
-      else localStorage.removeItem(USER_STORAGE_KEY)
-    } catch {
-      /* ignore */
-    }
   }
 
-  setAccessToken(token: string | null): void {
+  setAccessToken(token: string | null, expiresIn?: string): void {
     this._accessToken.set(token)
-    try {
-      if (token) localStorage.setItem(ACCESS_TOKEN_KEY, token)
-      else localStorage.removeItem(ACCESS_TOKEN_KEY)
-    } catch {
-      /* ignore */
+    if (token && expiresIn) {
+      this._accessTokenExpiresAt.set(this.calculateExpiryDate(expiresIn))
+    } else {
+      this._accessTokenExpiresAt.set(null)
     }
-  }
-
-  setRefreshToken(token: string | null): void {
-    this._refreshToken.set(token)
-    try {
-      if (token) localStorage.setItem(REFRESH_TOKEN_KEY, token)
-      else localStorage.removeItem(REFRESH_TOKEN_KEY)
-    } catch {
-      /* ignore */
-    }
-  }
-
-  setTokens(accessToken: string | null, refreshToken: string | null): void {
-    this.setAccessToken(accessToken)
-    this.setRefreshToken(refreshToken)
   }
 
   clear(): void {
-    this.setUser(null)
-    this.setTokens(null, null)
+    this._user.set(null)
+    this._accessToken.set(null)
+    this._accessTokenExpiresAt.set(null)
   }
 
   isAuthenticated(): boolean {
     return !!this._user() && !!this._accessToken()
   }
 
+  isAccessTokenExpired(): boolean {
+    const expiresAt = this._accessTokenExpiresAt()
+    if (!expiresAt) return true
+    return new Date() >= expiresAt
+  }
+
   getAccessToken(): string | null {
     return this._accessToken()
   }
 
-  getRefreshToken(): string | null {
-    return this._refreshToken()
+  /**
+   * Parse duration strings like "15m", "7d", "1h" to calculate expiry date
+   */
+  private calculateExpiryDate(duration: string): Date {
+    const now = new Date()
+    const regex = /^(\d+)([smhd])$/
+    const match = regex.exec(duration)
+
+    if (!match) {
+      // Default to 15 minutes if parsing fails
+      return new Date(now.getTime() + 15 * 60 * 1000)
+    }
+
+    const value = Number.parseInt(match[1], 10)
+    const unit = match[2]
+
+    switch (unit) {
+      case 's':
+        return new Date(now.getTime() + value * 1000)
+      case 'm':
+        return new Date(now.getTime() + value * 60 * 1000)
+      case 'h':
+        return new Date(now.getTime() + value * 60 * 60 * 1000)
+      case 'd':
+        return new Date(now.getTime() + value * 24 * 60 * 60 * 1000)
+      default:
+        return new Date(now.getTime() + 15 * 60 * 1000)
+    }
   }
 }

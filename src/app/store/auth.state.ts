@@ -8,7 +8,7 @@ import * as AuthActions from './auth.actions'
 
 export interface AuthStateModel {
   accessToken: string | null
-  refreshToken: string | null
+  accessTokenExpiresIn: string | null
   user: User | null
   loading: boolean
   error: string | null
@@ -18,7 +18,7 @@ export interface AuthStateModel {
   name: 'auth',
   defaults: {
     accessToken: null,
-    refreshToken: null,
+    accessTokenExpiresIn: null,
     user: null,
     loading: false,
     error: null,
@@ -31,11 +31,6 @@ export class AuthState {
   @Selector()
   static accessToken(state: AuthStateModel): string | null {
     return state.accessToken
-  }
-
-  @Selector()
-  static refreshToken(state: AuthStateModel): string | null {
-    return state.refreshToken
   }
 
   @Selector()
@@ -65,7 +60,11 @@ export class AuthState {
     return this.authService.login(action.identifiant, action.motDePasse).pipe(
       map((response: LoginResponse) => {
         return ctx.dispatch(
-          new AuthActions.LoginSuccess(response.user, response.accessToken, response.refreshToken)
+          new AuthActions.LoginSuccess(
+            response.user,
+            response.accessToken,
+            response.accessTokenExpiresIn
+          )
         )
       }),
       catchError(error => {
@@ -78,12 +77,12 @@ export class AuthState {
 
   @Action(AuthActions.LoginSuccess)
   loginSuccess(ctx: StateContext<AuthStateModel>, action: AuthActions.LoginSuccess) {
-    // Also store tokens in AuthStateService for interceptor access
-    this.authService.setSession(action.user, action.accessToken, action.refreshToken)
+    // Store access token in AuthStateService for interceptor access
+    this.authService.setSession(action.user, action.accessToken, action.accessTokenExpiresIn)
 
     ctx.patchState({
       accessToken: action.accessToken,
-      refreshToken: action.refreshToken,
+      accessTokenExpiresIn: action.accessTokenExpiresIn,
       user: action.user,
       loading: false,
       error: null,
@@ -108,7 +107,7 @@ export class AuthState {
           new AuthActions.RegisterSuccess(
             response.user,
             response.accessToken,
-            response.refreshToken
+            response.accessTokenExpiresIn
           )
         )
       }),
@@ -122,12 +121,12 @@ export class AuthState {
 
   @Action(AuthActions.RegisterSuccess)
   registerSuccess(ctx: StateContext<AuthStateModel>, action: AuthActions.RegisterSuccess) {
-    // Also store tokens in AuthStateService for interceptor access
-    this.authService.setSession(action.user, action.accessToken, action.refreshToken)
+    // Store access token in AuthStateService for interceptor access
+    this.authService.setSession(action.user, action.accessToken, action.accessTokenExpiresIn)
 
     ctx.patchState({
       accessToken: action.accessToken,
-      refreshToken: action.refreshToken,
+      accessTokenExpiresIn: action.accessTokenExpiresIn,
       user: action.user,
       loading: false,
       error: null,
@@ -144,10 +143,20 @@ export class AuthState {
 
   @Action(AuthActions.Logout)
   logout(ctx: StateContext<AuthStateModel>) {
-    this.authService.logout()
+    // Call server to clear HttpOnly cookie, then clear local state
+    this.authService.logoutFromServer().subscribe({
+      complete: () => {
+        this.authService.logout()
+      },
+      error: () => {
+        // Clear local state even if server call fails
+        this.authService.logout()
+      },
+    })
+
     ctx.setState({
       accessToken: null,
-      refreshToken: null,
+      accessTokenExpiresIn: null,
       user: null,
       loading: false,
       error: null,
@@ -171,7 +180,9 @@ export class AuthState {
   refreshToken(ctx: StateContext<AuthStateModel>) {
     return this.authService.refreshToken().pipe(
       map(response => {
-        return ctx.dispatch(new AuthActions.RefreshTokenSuccess(response.accessToken))
+        return ctx.dispatch(
+          new AuthActions.RefreshTokenSuccess(response.accessToken, response.accessTokenExpiresIn)
+        )
       }),
       catchError(error => {
         const errorMsg = error?.error?.message || 'Session expirée'
@@ -185,9 +196,10 @@ export class AuthState {
 
   @Action(AuthActions.RefreshTokenSuccess)
   refreshTokenSuccess(ctx: StateContext<AuthStateModel>, action: AuthActions.RefreshTokenSuccess) {
-    this.authService.updateAccessToken(action.accessToken)
+    this.authService.updateAccessToken(action.accessToken, action.accessTokenExpiresIn)
     ctx.patchState({
       accessToken: action.accessToken,
+      accessTokenExpiresIn: action.accessTokenExpiresIn,
     })
   }
 

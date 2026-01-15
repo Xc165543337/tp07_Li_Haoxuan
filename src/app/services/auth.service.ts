@@ -7,14 +7,27 @@ import { AuthStateService } from './auth-state.service'
 
 export type RegisterResponse = LoginResponse
 
+/**
+ * AuthService - Handles authentication with HttpOnly cookie for refresh token
+ *
+ * SECURITY: Refresh token is stored as HttpOnly cookie by backend.
+ * Frontend only stores accessToken in memory.
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient)
   private readonly state = inject(AuthStateService)
   private readonly baseUrl = `${environment.apiBaseUrl}/users`
 
+  // Options to include cookies in requests
+  private readonly withCredentials = { withCredentials: true }
+
   login(identifiant: string, motDePasse: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.baseUrl}/login`, { identifiant, motDePasse })
+    return this.http.post<LoginResponse>(
+      `${this.baseUrl}/login`,
+      { identifiant, motDePasse },
+      this.withCredentials
+    )
   }
 
   register(payload: {
@@ -24,21 +37,38 @@ export class AuthService {
     motDePasse: string
     nomUtilisateur: string
   }): Observable<RegisterResponse> {
-    return this.http.post<RegisterResponse>(`${this.baseUrl}/register`, payload)
+    return this.http.post<RegisterResponse>(
+      `${this.baseUrl}/register`,
+      payload,
+      this.withCredentials
+    )
   }
 
+  /**
+   * Refresh access token using HttpOnly cookie (sent automatically by browser)
+   */
   refreshToken(): Observable<RefreshTokenResponse> {
-    const refreshToken = this.state.getRefreshToken()
-    return this.http.post<RefreshTokenResponse>(`${this.baseUrl}/refresh-token`, { refreshToken })
+    return this.http.post<RefreshTokenResponse>(
+      `${this.baseUrl}/refresh-token`,
+      {}, // Empty body - refresh token is in HttpOnly cookie
+      this.withCredentials
+    )
   }
 
-  setSession(user: User, accessToken: string, refreshToken: string): void {
+  /**
+   * Logout - clears HttpOnly cookie on server
+   */
+  logoutFromServer(): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/logout`, {}, this.withCredentials)
+  }
+
+  setSession(user: User, accessToken: string, accessTokenExpiresIn?: string): void {
     this.state.setUser(user)
-    this.state.setTokens(accessToken, refreshToken)
+    this.state.setAccessToken(accessToken, accessTokenExpiresIn)
   }
 
-  updateAccessToken(accessToken: string): void {
-    this.state.setAccessToken(accessToken)
+  updateAccessToken(accessToken: string, accessTokenExpiresIn?: string): void {
+    this.state.setAccessToken(accessToken, accessTokenExpiresIn)
   }
 
   setSessionUser(user: User | null): void {
@@ -51,10 +81,6 @@ export class AuthService {
 
   getAccessToken(): string | null {
     return this.state.getAccessToken()
-  }
-
-  getRefreshToken(): string | null {
-    return this.state.getRefreshToken()
   }
 
   isAuthenticated(): boolean {

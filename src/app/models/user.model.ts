@@ -18,17 +18,16 @@ export interface RegisterUser {
 
 export interface AuthTokens {
   accessToken: string
-  refreshToken: string
   accessTokenExpiresIn: string
-  refreshTokenExpiresIn: string
 }
 
+/**
+ * Login response - refreshToken is NOT included (stored as HttpOnly cookie by backend)
+ */
 export interface LoginResponse {
   user: User
   accessToken: string
-  refreshToken: string
   accessTokenExpiresIn: string
-  refreshTokenExpiresIn: string
 }
 
 export interface RefreshTokenResponse {

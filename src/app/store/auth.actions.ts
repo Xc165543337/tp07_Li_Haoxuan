@@ -14,7 +14,7 @@ export class LoginSuccess {
   constructor(
     public user: User,
     public accessToken: string,
-    public refreshToken: string
+    public accessTokenExpiresIn: string
   ) {}
 }
 
@@ -41,7 +41,7 @@ export class RegisterSuccess {
   constructor(
     public user: User,
     public accessToken: string,
-    public refreshToken: string
+    public accessTokenExpiresIn: string
   ) {}
 }
 
@@ -69,7 +69,10 @@ export class RefreshToken {
 
 export class RefreshTokenSuccess {
   static readonly type = '[Auth] Refresh Token Success'
-  constructor(public accessToken: string) {}
+  constructor(
+    public accessToken: string,
+    public accessTokenExpiresIn: string
+  ) {}
 }
 
 export class RefreshTokenFailure {

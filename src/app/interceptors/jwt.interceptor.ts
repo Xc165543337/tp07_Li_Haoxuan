@@ -26,8 +26,8 @@ export const jwtInterceptor: HttpInterceptorFn = (
   const store = inject(Store)
   const router = inject(Router)
 
-  // Skip auth for login, register, and refresh-token endpoints
-  const skipUrls = ['/login', '/register', '/refresh-token']
+  // Skip auth for login, register, refresh-token, and logout endpoints
+  const skipUrls = ['/login', '/register', '/refresh-token', '/logout']
   const shouldSkip = skipUrls.some(url => req.url.includes(url))
 
   if (shouldSkip) {
@@ -42,7 +42,7 @@ export const jwtInterceptor: HttpInterceptorFn = (
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Handle 401 Unauthorized - try to refresh token
+      // Handle 401 Unauthorized - try to refresh token using HttpOnly cookie
       if (error.status === 401 && !shouldSkip) {
         return handle401Error(req, next, authService, store, router)
       }
@@ -59,6 +59,10 @@ function addTokenToRequest(req: HttpRequest<unknown>, token: string): HttpReques
   })
 }
 
+/**
+ * Handle 401 errors by attempting to refresh the access token.
+ * Refresh token is sent automatically via HttpOnly cookie.
+ */
 function handle401Error(
   req: HttpRequest<unknown>,
   next: HttpHandlerFn,
@@ -70,38 +74,29 @@ function handle401Error(
     isRefreshing = true
     refreshTokenSubject.next(null)
 
-    const refreshToken = store.selectSnapshot(AuthState.refreshToken)
+    // Attempt to refresh - cookie is sent automatically
+    return authService.refreshToken().pipe(
+      switchMap(response => {
+        isRefreshing = false
 
-    if (refreshToken) {
-      return authService.refreshToken().pipe(
-        switchMap(response => {
-          isRefreshing = false
+        // Update the access token in the service
+        authService.updateAccessToken(response.accessToken, response.accessTokenExpiresIn)
 
-          // Update the access token in the service
-          authService.updateAccessToken(response.accessToken)
+        refreshTokenSubject.next(response.accessToken)
 
-          refreshTokenSubject.next(response.accessToken)
+        // Retry the original request with the new token
+        return next(addTokenToRequest(req, response.accessToken))
+      }),
+      catchError(err => {
+        isRefreshing = false
 
-          // Retry the original request with the new token
-          return next(addTokenToRequest(req, response.accessToken))
-        }),
-        catchError(err => {
-          isRefreshing = false
+        // Refresh failed - logout and redirect to login
+        store.dispatch(new Logout())
+        router.navigate(['/login'])
 
-          // Refresh failed - logout and redirect to login
-          store.dispatch(new Logout())
-          router.navigate(['/login'])
-
-          return throwError(() => err)
-        })
-      )
-    } else {
-      // No refresh token available - logout
-      isRefreshing = false
-      store.dispatch(new Logout())
-      router.navigate(['/login'])
-      return throwError(() => new Error('No refresh token available'))
-    }
+        return throwError(() => err)
+      })
+    )
   }
 
   // Wait for token refresh to complete
