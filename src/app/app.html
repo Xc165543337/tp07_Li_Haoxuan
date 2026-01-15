@@ -4,7 +4,6 @@
       <h1 class="app-title">{{ title() }}</h1>
       <nav class="main-nav">
         <a routerLink="/pollutions" routerLinkActive="active" class="nav-link">Pollutions</a>
-        <a routerLink="/users" routerLinkActive="active" class="nav-link">Utilisateurs</a>
         <a routerLink="/favorites" routerLinkActive="active" class="nav-link favorites-link">
           Favoris
           @if (bookmarkCount(); as count) {
@@ -13,6 +12,9 @@
             }
           }
         </a>
+        @if (isAdmin()) {
+          <a routerLink="/admin" routerLinkActive="active" class="nav-link admin-link"> 🛡️ Admin </a>
+        }
       </nav>
     </div>
     <div class="header-right">

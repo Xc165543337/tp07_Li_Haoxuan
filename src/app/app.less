@@ -189,6 +189,21 @@
   }
 }
 
+.admin-link {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+
+  &:hover {
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  }
+
+  &.active,
+  &.router-link-active {
+    background: #fecaca;
+    color: #991b1b;
+  }
+}
+
 @keyframes badgePulse {
   0%,
   100% {

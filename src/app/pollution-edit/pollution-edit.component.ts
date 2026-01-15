@@ -1,11 +1,21 @@
-import { Component, OnInit, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core'
 import { CommonModule } from '@angular/common'
-import { ActivatedRoute, Router } from '@angular/router'
+import { Component, computed, CUSTOM_ELEMENTS_SCHEMA, inject, input } from '@angular/core'
+import { rxResource } from '@angular/core/rxjs-interop'
+import { Router } from '@angular/router'
+import { UpdatePollutionPayload } from '../models/pollution.model'
 import { PollutionFormComponent } from '../pollution-form/pollution-form.component'
-import { PollutionDeclaration } from '../models/pollution.model'
 import { PollutionService } from '../services/pollution.service'
 import { ToastService } from '../services/toast.service'
 
+/**
+ * PollutionEditComponent using rxResource for declarative async loading.
+ *
+ * Benefits:
+ * - Automatic loading state via .isLoading()
+ * - Automatic error handling via .error()
+ * - Reactive to route param changes
+ * - Cleaner component code without manual subscription
+ */
 @Component({
   selector: 'app-pollution-edit',
   standalone: true,
@@ -14,41 +24,35 @@ import { ToastService } from '../services/toast.service'
   templateUrl: './pollution-edit.component.html',
   styleUrls: ['./pollution-edit.component.less'],
 })
-export class PollutionEditComponent implements OnInit {
-  private readonly route = inject(ActivatedRoute)
+export class PollutionEditComponent {
   private readonly router = inject(Router)
   private readonly pollutionService = inject(PollutionService)
   private readonly toastService = inject(ToastService)
 
-  pollution: PollutionDeclaration | null = null
-  loading = true
+  // Route param as input signal
+  readonly id = input.required<string>()
 
-  ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'))
-    if (id) {
-      this.loadPollution(id)
-    }
-  }
+  // Computed numeric ID
+  private readonly pollutionId = computed(() => Number(this.id()))
 
-  loadPollution(id: number): void {
-    this.pollutionService.getById(id).subscribe({
-      next: data => {
-        this.pollution = data
-        this.loading = false
-      },
-      error: error => {
-        this.toastService.show('Erreur lors du chargement', 'error')
-        this.loading = false
-        console.error('Error loading pollution:', error)
-      },
-    })
-  }
+  // rxResource for declarative loading
+  readonly pollutionResource = rxResource({
+    params: () => this.pollutionId(),
+    stream: ({ params: id }) => this.pollutionService.getById(id),
+  })
 
-  onSave(pollution: PollutionDeclaration): void {
-    this.pollutionService.update(pollution.id, pollution).subscribe({
+  // Convenience computed signals
+  readonly pollution = computed(() => this.pollutionResource.value())
+  readonly loading = computed(() => this.pollutionResource.isLoading())
+
+  onSave(payload: UpdatePollutionPayload): void {
+    const pollution = this.pollution()
+    if (!pollution) return
+
+    this.pollutionService.update(pollution.id, payload).subscribe({
       next: () => {
         this.toastService.show('Pollution mise à jour avec succès', 'success')
-        this.router.navigate(['/pollutions/list'])
+        this.router.navigate(['/pollutions/detail', pollution.id])
       },
       error: error => {
         this.toastService.show('Erreur lors de la mise à jour', 'error')

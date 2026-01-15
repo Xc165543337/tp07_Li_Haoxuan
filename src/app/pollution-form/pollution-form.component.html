@@ -1,183 +1,287 @@
 <div class="pollution-form-container">
-  @if (pollution) {
-    <div class="form-card">
-      <div class="form-header">
-        <h2>{{ isEditMode ? 'Édition rapide' : 'Nouvelle Déclaration' }}</h2>
-        <p class="subtitle">
-          {{ isEditMode ? 'Modifier les informations de la pollution' : 'Déclarer une Pollution' }}
-        </p>
+  <div class="form-card">
+    <div class="form-header">
+      <h2>{{ isEditMode() ? 'Édition rapide' : 'Nouvelle Déclaration' }}</h2>
+      <p class="subtitle">
+        {{ isEditMode() ? 'Modifier les informations de la pollution' : 'Déclarer une Pollution' }}
+      </p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <!-- Titre -->
+      <div class="form-group">
+        <label for="titre">Titre de la pollution *</label>
+        <input
+          type="text"
+          id="titre"
+          formControlName="titre"
+          placeholder="Ex: Déversement d'huile près du ruisseau"
+          class="form-control"
+          [class.error]="hasError('titre')"
+        />
+        @if (hasError('titre')) {
+          <div class="error-message">
+            @if (form.get('titre')?.errors?.['required']) {
+              Le titre est requis
+            } @else if (form.get('titre')?.errors?.['minlength']) {
+              Le titre doit contenir au moins 3 caractères
+            }
+          </div>
+        }
       </div>
 
-      <form #pollutionForm="ngForm" (ngSubmit)="onSubmit()">
-        <!-- Titre -->
-        <div class="form-group">
-          <label for="titre">Titre de la pollution *</label>
-          <input
-            type="text"
-            id="titre"
-            name="titre"
-            [(ngModel)]="pollution.titre"
-            required
-            #titre="ngModel"
-            placeholder="Ex: Déversement d'huile près du ruisseau"
-            class="form-control"
-          />
-          @if (titre.invalid && titre.touched) {
-            <div class="error-message">Le titre est requis</div>
+      <!-- Type -->
+      <div class="form-group">
+        <label for="type">Type de pollution *</label>
+        <select id="type" formControlName="type" class="form-control" [class.error]="hasError('type')">
+          <option value="">-- Sélectionnez un type --</option>
+          @for (t of types; track t) {
+            <option [value]="t">{{ t }}</option>
           }
-        </div>
+        </select>
+        @if (hasError('type')) {
+          <div class="error-message">Le type est requis</div>
+        }
+      </div>
 
-        <!-- Type -->
-        <div class="form-group">
-          <label for="type">Type de pollution *</label>
-          <select id="type" name="type" [(ngModel)]="pollution.type" required #type="ngModel" class="form-control">
-            <option value="">-- Sélectionnez un type --</option>
-            @for (t of types; track t) {
-              <option [value]="t">{{ t }}</option>
+      <!-- Description -->
+      <div class="form-group">
+        <label for="description">Description *</label>
+        <textarea
+          id="description"
+          formControlName="description"
+          rows="4"
+          placeholder="Décrivez la pollution observée en détail..."
+          class="form-control"
+          [class.error]="hasError('description')"
+        ></textarea>
+        @if (hasError('description')) {
+          <div class="error-message">
+            @if (form.get('description')?.errors?.['required']) {
+              La description est requise
+            } @else if (form.get('description')?.errors?.['minlength']) {
+              La description doit contenir au moins 10 caractères
             }
-          </select>
-          @if (type.invalid && type.touched) {
-            <div class="error-message">Le type est requis</div>
-          }
-        </div>
-
-        <!-- Description -->
-        <div class="form-group">
-          <label for="description">Description *</label>
-          <textarea
-            id="description"
-            name="description"
-            [(ngModel)]="pollution.description"
-            required
-            #description="ngModel"
-            rows="4"
-            placeholder="Ex: Taches huileuses visibles sur le courant."
-            class="form-control"
-          ></textarea>
-          @if (description.invalid && description.touched) {
-            <div class="error-message">La description est requise</div>
-          }
-        </div>
-
-        <!-- Date -->
-        <div class="form-group">
-          <label for="dateObservation">Date de l'observation *</label>
-          <input
-            type="date"
-            id="dateObservation"
-            name="dateObservation"
-            [(ngModel)]="pollution.dateObservation"
-            required
-            #dateObservation="ngModel"
-            class="form-control"
-          />
-          @if (dateObservation.invalid && dateObservation.touched) {
-            <div class="error-message">La date est requise</div>
-          }
-        </div>
-
-        <!-- Lieu -->
-        <div class="form-group">
-          <label for="lieu">Lieu *</label>
-          <input
-            type="text"
-            id="lieu"
-            name="lieu"
-            [(ngModel)]="pollution.lieu"
-            required
-            #lieu="ngModel"
-            placeholder="Ex: Rivière des Prés"
-            class="form-control"
-          />
-          @if (lieu.invalid && lieu.touched) {
-            <div class="error-message">Le lieu est requis</div>
-          }
-        </div>
-
-        <!-- Coordonnées -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="latitude">Latitude *</label>
-            <input
-              type="number"
-              id="latitude"
-              name="latitude"
-              [(ngModel)]="pollution.latitude"
-              required
-              step="0.000001"
-              placeholder="48.8566"
-              class="form-control"
-            />
           </div>
+        }
+      </div>
 
-          <div class="form-group">
-            <label for="longitude">Longitude *</label>
-            <input
-              type="number"
-              id="longitude"
-              name="longitude"
-              required
-              step="0.000001"
-              placeholder="2.3522"
-              class="form-control"
-              name="longitude"
-              [(ngModel)]="pollution.longitude"
-            />
-          </div>
-        </div>
+      <!-- Date -->
+      <div class="form-group">
+        <label for="dateObservation">Date de l'observation *</label>
+        <input
+          type="date"
+          id="dateObservation"
+          formControlName="dateObservation"
+          class="form-control"
+          [class.error]="hasError('dateObservation')"
+        />
+        @if (hasError('dateObservation')) {
+          <div class="error-message">La date est requise</div>
+        }
+      </div>
 
-        <!-- Niveau -->
-        <div class="form-group">
-          <label for="niveau">Niveau de gravité *</label>
-          <select
-            id="niveau"
-            name="niveau"
-            [(ngModel)]="pollution.niveau"
-            required
-            #niveau="ngModel"
-            class="form-control"
+      <!-- Niveau -->
+      <div class="form-group">
+        <label for="niveau">Niveau de gravité *</label>
+        <select id="niveau" formControlName="niveau" class="form-control" [class.error]="hasError('niveau')">
+          <option value="">-- Sélectionnez un niveau --</option>
+          @for (n of niveaux; track n) {
+            <option [value]="n">{{ n }}</option>
+          }
+        </select>
+        @if (hasError('niveau')) {
+          <div class="error-message">Le niveau est requis</div>
+        }
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- LOCATION SECTION                                     -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <fieldset class="location-section">
+        <legend>Localisation *</legend>
+
+        <!-- Location Type Toggle -->
+        <div class="toggle-group">
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.active]="locationType() === 'address'"
+            (click)="setLocationType('address')"
           >
-            <option value="">-- Sélectionnez un niveau --</option>
-            @for (n of niveaux; track n) {
-              <option [value]="n">{{ n }}</option>
-            }
-          </select>
-          @if (niveau.invalid && niveau.touched) {
-            <div class="error-message">Le niveau est requis</div>
-          }
+            📍 Adresse
+          </button>
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.active]="locationType() === 'gps'"
+            (click)="setLocationType('gps')"
+          >
+            🛰️ Coordonnées GPS
+          </button>
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.active]="locationType() === 'both'"
+            (click)="setLocationType('both')"
+          >
+            📍🛰️ Les deux
+          </button>
         </div>
 
-        <!-- Photo (Optional) -->
-        <div class="form-group optional">
-          <label for="photoUrl">Photo (URL)</label>
-          <input
-            type="url"
-            id="photoUrl"
-            name="photoUrl"
-            [(ngModel)]="pollution.photoUrl"
-            #photoUrl="ngModel"
-            placeholder="https://example.com/photo.jpg"
-            class="form-control"
-          />
-          <small class="helper-text">Optionnel - URL vers une photo de la pollution</small>
+        <!-- Address Field -->
+        @if (showAddressField()) {
+          <div class="form-group">
+            <label for="adresse">Adresse</label>
+            <input
+              type="text"
+              id="adresse"
+              formControlName="adresse"
+              placeholder="Ex: 12 rue de la Rivière, 75001 Paris"
+              class="form-control"
+            />
+          </div>
+        }
 
-          <!-- Image Preview -->
-          @if (isValidImageUrl(pollution.photoUrl)) {
-            <div class="image-preview">
-              <img [src]="pollution.photoUrl" alt="Aperçu de la photo" />
-              <button type="button" class="remove-image" (click)="pollution.photoUrl = ''" title="Supprimer l'image">
-                ❌
-              </button>
+        <!-- GPS Coordinates -->
+        @if (showGpsFields()) {
+          <div class="form-row">
+            <div class="form-group">
+              <label for="latitude">Latitude</label>
+              <input
+                type="number"
+                id="latitude"
+                formControlName="latitude"
+                step="0.000001"
+                placeholder="48.8566"
+                class="form-control"
+              />
             </div>
-          }
+
+            <div class="form-group">
+              <label for="longitude">Longitude</label>
+              <input
+                type="number"
+                id="longitude"
+                formControlName="longitude"
+                step="0.000001"
+                placeholder="2.3522"
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-secondary btn-small" (click)="useCurrentLocation()">
+            📱 Utiliser ma position actuelle
+          </button>
+        }
+
+        <!-- Location Validation Error -->
+        @if (hasFormError('locationRequired')) {
+          <div class="error-message location-error">Veuillez fournir une adresse ou des coordonnées GPS</div>
+        }
+      </fieldset>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- PHOTO SECTION                                        -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <fieldset class="photo-section">
+        <legend>Photo (optionnel)</legend>
+
+        <!-- Photo Source Toggle -->
+        <div class="toggle-group">
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.active]="photoSource() === 'url'"
+            (click)="setPhotoSource('url')"
+          >
+            🔗 URL
+          </button>
+          <button
+            type="button"
+            class="toggle-btn"
+            [class.active]="photoSource() === 'upload'"
+            (click)="setPhotoSource('upload')"
+          >
+            📤 Télécharger
+          </button>
         </div>
 
-        <!-- Actions -->
-        <div class="form-actions">
-          <button type="button" class="btn btn-secondary" (click)="onCancel()">Annuler</button>
-          <button type="submit" class="btn btn-primary" [disabled]="pollutionForm.invalid">Enregistrer</button>
-        </div>
-      </form>
-    </div>
-  }
+        <!-- URL Input -->
+        @if (showPhotoUrlInput()) {
+          <div class="form-group">
+            <input
+              type="url"
+              id="photoUrl"
+              formControlName="photoUrl"
+              placeholder="https://example.com/photo.jpg"
+              class="form-control"
+            />
+            <small class="helper-text">Entrez l'URL d'une image existante</small>
+          </div>
+        }
+
+        <!-- File Upload -->
+        @if (showPhotoUpload()) {
+          <div class="form-group upload-zone">
+            @if (!uploadedPhotoUrl()) {
+              <label for="fileInput" class="upload-label" [class.uploading]="isUploading()">
+                @if (isUploading()) {
+                  <span class="spinner"></span>
+                  <span>Téléchargement en cours...</span>
+                } @else {
+                  <span class="upload-icon">📷</span>
+                  <span>Cliquez ou glissez une image ici</span>
+                  <small>JPG, PNG, GIF - Max 5 Mo</small>
+                }
+              </label>
+              <input
+                type="file"
+                id="fileInput"
+                accept="image/*"
+                (change)="onFileSelected($event)"
+                [disabled]="isUploading()"
+                class="file-input"
+              />
+            } @else {
+              <div class="uploaded-preview">
+                <span class="success-icon">✅</span>
+                <span>Image téléchargée</span>
+                <button type="button" class="btn btn-danger btn-small" (click)="removeUploadedPhoto()">
+                  Supprimer
+                </button>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Image Preview -->
+        @if (isValidImageUrl(form.get('photoUrl')?.value) && !photoPreviewError()) {
+          <div class="image-preview">
+            <img
+              [src]="form.get('photoUrl')?.value"
+              alt="Aperçu de la photo"
+              (error)="onImageError()"
+              (load)="onImageLoad()"
+            />
+          </div>
+        }
+
+        @if (photoPreviewError()) {
+          <div class="preview-error">⚠️ Impossible de charger l'aperçu de l'image</div>
+        }
+      </fieldset>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- FORM ACTIONS                                         -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="onCancel()">Annuler</button>
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+          {{ isEditMode() ? 'Mettre à jour' : 'Créer la déclaration' }}
+        </button>
+      </div>
+    </form>
+  </div>
 </div>

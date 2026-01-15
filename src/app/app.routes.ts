@@ -5,7 +5,6 @@ import { FavoritesComponent } from './favorites/favorites.component'
 import { authGuard, homeGuard } from './guards/auth.guard'
 import { HomeComponent } from './home/home.component'
 import { ProfileComponent } from './profile/profile.component'
-import { UsersListComponent } from './users/users-list.component'
 
 export const routes: Routes = [
   {
@@ -26,7 +25,10 @@ export const routes: Routes = [
     component: ProfileComponent,
     canActivate: [authGuard],
   },
-  { path: 'users', component: UsersListComponent },
+  {
+    path: 'admin',
+    loadChildren: () => import('./admin/admin.routes').then(m => m.ADMIN_ROUTES),
+  },
   {
     path: 'favorites',
     component: FavoritesComponent,

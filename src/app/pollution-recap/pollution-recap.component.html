@@ -7,65 +7,72 @@
     </div>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card total">
-      <div class="stat-icon">📊</div>
-      <div class="stat-info">
-        <h3>{{ stats.totalDeclarations }}</h3>
-        <p>Total des pollutions</p>
+  @if (loading()) {
+    <div class="loading">Chargement des statistiques...</div>
+  } @else {
+    <div class="stats-grid">
+      <div class="stat-card total">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <h3>{{ stats().totalDeclarations }}</h3>
+          <p>Total des pollutions</p>
+        </div>
       </div>
+
+      @for (level of pollutionLevel; track level) {
+        <div
+          class="stat-card"
+          [ngClass]="{ faible: level === 'Faible', moyen: level === 'Moyen', eleve: level === 'Élevé' }"
+        >
+          <div class="stat-icon">
+            {{ level === 'Faible' ? '✅' : level === 'Moyen' ? '⚠️' : '🚨' }}
+          </div>
+          <div class="stat-info">
+            <h3>{{ stats().declarationsBySeverity[level] }}</h3>
+            <p>Niveau {{ level.toLowerCase() }}</p>
+          </div>
+        </div>
+      }
     </div>
 
-    @for (level of pollutionLevel; track level) {
-      <div
-        class="stat-card"
-        [ngClass]="{ faible: level === 'Faible', moyen: level === 'Moyen', eleve: level === 'Élevé' }"
-      >
-        <div class="stat-icon">
-          {{ level === 'Faible' ? '✅' : level === 'Moyen' ? '⚠️' : '🚨' }}
-        </div>
-        <div class="stat-info">
-          <h3>{{ stats.declarationsBySeverity[level] }}</h3>
-          <p>Niveau {{ level.toLowerCase() }}</p>
+    @for (type of pollutionType; track type) {
+      <div class="stats-grid">
+        <div class="stat-card type-card">
+          <div class="stat-icon">🗑️</div>
+          <div class="stat-info">
+            <h3>{{ stats().declarationsByType[type] }}</h3>
+            <p>Type: {{ type }}</p>
+          </div>
         </div>
       </div>
     }
-  </div>
 
-  @for (type of pollutionType; track type) {
-    <div class="stats-grid">
-      <div class="stat-card type-card">
-        <div class="stat-icon">🗑️</div>
-        <div class="stat-info">
-          <h3>{{ stats.declarationsByType[type] }}</h3>
-          <p>Type: {{ type }}</p>
+    @if (pollutions().length > 0) {
+      <div class="recent-pollutions">
+        <h3>📋 Pollutions Récentes</h3>
+        <div class="pollution-list">
+          @for (pollution of pollutions() | slice: 0 : 5; track pollution.id) {
+            <div class="pollution-item">
+              <div class="pollution-info">
+                <h4>{{ pollution.titre }}</h4>
+                <p>
+                  {{ pollution.adresse || 'GPS: ' + pollution.latitude + ', ' + pollution.longitude }} -
+                  {{ pollution.dateObservation | date: 'shortDate' }}
+                </p>
+              </div>
+              <span class="severity-badge" [class]="'severity-' + pollution.niveau">
+                {{ pollution.niveau }}
+              </span>
+              <button class="btn btn-info" [routerLink]="['/pollutions/detail', pollution.id]">👁️ Voir</button>
+            </div>
+          }
         </div>
       </div>
-    </div>
-  }
-
-  @if (pollutions.length > 0) {
-    <div class="recent-pollutions">
-      <h3>📋 Pollutions Récentes</h3>
-      <div class="pollution-list">
-        @for (pollution of pollutions | slice: 0 : 5; track pollution.id) {
-          <div class="pollution-item">
-            <div class="pollution-info">
-              <h4>{{ pollution.titre }}</h4>
-              <p>{{ pollution.lieu }} - {{ pollution.dateObservation | date: 'short' }}</p>
-            </div>
-            <span class="severity-badge" [class]="'severity-' + pollution.niveau">
-              {{ pollution.niveau }}
-            </span>
-            <button class="btn btn-info" [routerLink]="['/pollutions/detail', pollution.id]">👁️ Voir</button>
-          </div>
-        }
+    } @else {
+      <div class="no-data">
+        <p>Aucune pollution enregistrée</p>
+        <button class="btn btn-primary" routerLink="/pollutions/create">Créer la première pollution</button>
       </div>
-    </div>
-  } @else {
-    <div class="no-data">
-      <p>Aucune pollution enregistrée</p>
-      <button class="btn btn-primary" routerLink="/pollutions/create">Créer la première pollution</button>
-    </div>
+    }
   }
 </div>

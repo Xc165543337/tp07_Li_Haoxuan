@@ -1,5 +1,3 @@
 <div class="create-container">
-  <h2>➕ Déclarer une Nouvelle Pollution</h2>
-  <app-pollution-form [pollution]="newPollution" (saveEvent)="onSave($event)" (cancelEvent)="onCancel()">
-  </app-pollution-form>
+  <app-pollution-form (saveEvent)="onSave($event)" (cancelEvent)="onCancel()"> </app-pollution-form>
 </div>

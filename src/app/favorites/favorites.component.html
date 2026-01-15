@@ -37,13 +37,13 @@
               </div>
 
               <div class="info-row">
-                <span class="label">Lieu:</span>
-                <span>{{ pollution.lieu }}</span>
+                <span class="label">Localisation:</span>
+                <span>{{ pollution.adresse || pollution.latitude + ', ' + pollution.longitude }}</span>
               </div>
 
               <div class="info-row">
                 <span class="label">Date:</span>
-                <span>{{ pollution.dateObservation | date: 'short' }}</span>
+                <span>{{ pollution.dateObservation | date: 'shortDate' }}</span>
               </div>
 
               @if (pollution.description) {

@@ -6,7 +6,7 @@ import {
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core'
-import { provideRouter } from '@angular/router'
+import { provideRouter, withComponentInputBinding } from '@angular/router'
 import { withNgxsReduxDevtoolsPlugin } from '@ngxs/devtools-plugin'
 import { withNgxsStoragePlugin } from '@ngxs/storage-plugin'
 import { provideStore } from '@ngxs/store'
@@ -31,7 +31,8 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    // Enable route params as component input signals
+    provideRouter(routes, withComponentInputBinding()),
     // Register HttpClient with JWT interceptor
     provideHttpClient(withInterceptors([jwtInterceptor])),
     // Configure NGXS store with AuthState and BookmarkState

@@ -1,15 +1,18 @@
-import { Component, OnInit, inject } from '@angular/core'
 import { CommonModule } from '@angular/common'
+import { Component, computed, inject } from '@angular/core'
+import { rxResource } from '@angular/core/rxjs-interop'
 import { RouterLink } from '@angular/router'
-import {
-  PollutionDeclaration,
-  PollutionStats,
-  POLLUTION_LEVELS,
-  POLLUTION_TYPES,
-} from '../models/pollution.model'
+import { POLLUTION_LEVELS, POLLUTION_TYPES, PollutionStats } from '../models/pollution.model'
 import { PollutionService } from '../services/pollution.service'
-import { ToastService } from '../services/toast.service'
 
+/**
+ * PollutionRecapComponent using rxResource for declarative async loading.
+ *
+ * Benefits:
+ * - Automatic loading state management
+ * - Computed signals for derived statistics
+ * - No manual subscription or ngOnInit needed
+ */
 @Component({
   selector: 'app-pollution-recap',
   standalone: true,
@@ -17,61 +20,40 @@ import { ToastService } from '../services/toast.service'
   templateUrl: './pollution-recap.component.html',
   styleUrls: ['./pollution-recap.component.less'],
 })
-export class PollutionRecapComponent implements OnInit {
+export class PollutionRecapComponent {
   private readonly pollutionService = inject(PollutionService)
-  private readonly toastService = inject(ToastService)
 
-  pollutions: PollutionDeclaration[] = []
-  stats: PollutionStats = {
-    totalDeclarations: 0,
-    declarationsByType: {
-      Plastique: 0,
-      Chimique: 0,
-      'Dépôt sauvage': 0,
-      Eau: 0,
-      Air: 0,
-      Autre: 0,
-    },
-    declarationsBySeverity: {
-      Faible: 0,
-      Moyen: 0,
-      Élevé: 0,
-    },
-  }
-  pollutionLevel = [...POLLUTION_LEVELS]
-  pollutionType = [...POLLUTION_TYPES]
+  readonly pollutionLevel = [...POLLUTION_LEVELS]
+  readonly pollutionType = [...POLLUTION_TYPES]
 
-  ngOnInit(): void {
-    this.loadPollutions()
-  }
+  // rxResource loads automatically on component init
+  readonly pollutionsResource = rxResource({
+    stream: () => this.pollutionService.getAll(),
+  })
 
-  loadPollutions(): void {
-    this.pollutionService.getAll().subscribe({
-      next: data => {
-        this.pollutions = data
-        this.calculateStats()
+  // Convenience computed signals
+  readonly pollutions = computed(() => this.pollutionsResource.value() ?? [])
+  readonly loading = computed(() => this.pollutionsResource.isLoading())
+  readonly error = computed(() => this.pollutionsResource.error())
+
+  // Computed statistics - recalculates when pollutions change
+  readonly stats = computed<PollutionStats>(() => {
+    const pollutions = this.pollutions()
+    return {
+      totalDeclarations: pollutions.length,
+      declarationsBySeverity: {
+        Faible: pollutions.filter(p => p.niveau === 'Faible').length,
+        Moyen: pollutions.filter(p => p.niveau === 'Moyen').length,
+        Élevé: pollutions.filter(p => p.niveau === 'Élevé').length,
       },
-      error: error => {
-        this.toastService.show('Erreur lors du chargement', 'error')
-        console.error('Error loading pollutions:', error)
+      declarationsByType: {
+        Plastique: pollutions.filter(p => p.type === 'Plastique').length,
+        Chimique: pollutions.filter(p => p.type === 'Chimique').length,
+        'Dépôt sauvage': pollutions.filter(p => p.type === 'Dépôt sauvage').length,
+        Eau: pollutions.filter(p => p.type === 'Eau').length,
+        Air: pollutions.filter(p => p.type === 'Air').length,
+        Autre: pollutions.filter(p => p.type === 'Autre').length,
       },
-    })
-  }
-
-  calculateStats(): void {
-    this.stats.totalDeclarations = this.pollutions.length
-    this.stats.declarationsBySeverity = {
-      Faible: this.pollutions.filter(p => p.niveau === 'Faible').length,
-      Moyen: this.pollutions.filter(p => p.niveau === 'Moyen').length,
-      Élevé: this.pollutions.filter(p => p.niveau === 'Élevé').length,
     }
-    this.stats.declarationsByType = {
-      Plastique: this.pollutions.filter(p => p.type === 'Plastique').length,
-      Chimique: this.pollutions.filter(p => p.type === 'Chimique').length,
-      'Dépôt sauvage': this.pollutions.filter(p => p.type === 'Dépôt sauvage').length,
-      Eau: this.pollutions.filter(p => p.type === 'Eau').length,
-      Air: this.pollutions.filter(p => p.type === 'Air').length,
-      Autre: this.pollutions.filter(p => p.type === 'Autre').length,
-    }
-  }
+  })
 }

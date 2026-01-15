@@ -1,10 +1,13 @@
 <div class="pollution-list-container">
   <div class="header">
     <h2>📊 Liste des Pollutions</h2>
-    <button class="btn btn-primary" routerLink="/pollutions/create">➕ Nouvelle Déclaration</button>
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="refreshData()" [disabled]="isLoading">🔄 Rafraîchir</button>
+      <button class="btn btn-primary" routerLink="/pollutions/create">➕ Nouvelle Déclaration</button>
+    </div>
   </div>
 
-  <!-- Filters Section -->
+  <!-- Filters Section avec recherche dynamique RxJS -->
   <div class="filters-section">
     <div class="filter-row">
       <div class="filter-group">
@@ -12,15 +15,16 @@
         <input
           id="searchText"
           type="text"
-          placeholder="Rechercher par titre ou lieu..."
+          placeholder="Rechercher par titre, adresse, description..."
           [(ngModel)]="searchText"
-          (input)="applyFilters()"
+          (ngModelChange)="onSearchTextChange($event)"
         />
+        <small class="hint">Recherche dynamique avec debounce 300ms</small>
       </div>
 
       <div class="filter-group">
         <label for="selectedType">📂 Type:</label>
-        <select id="selectedType" [(ngModel)]="selectedType" (change)="applyFilters()">
+        <select id="selectedType" [(ngModel)]="selectedType" (ngModelChange)="onTypeChange($event)">
           <option value="">Tous les types</option>
           @for (type of pollutionTypes; track type) {
             <option [value]="type">{{ type }}</option>
@@ -30,7 +34,7 @@
 
       <div class="filter-group">
         <label for="selectedLevel">⚠️ Niveau:</label>
-        <select id="selectedLevel" [(ngModel)]="selectedLevel" (change)="applyFilters()">
+        <select id="selectedLevel" [(ngModel)]="selectedLevel" (ngModelChange)="onLevelChange($event)">
           <option value="">Tous les niveaux</option>
           @for (level of pollutionLevels; track level) {
             <option [value]="level">{{ level }}</option>
@@ -40,70 +44,89 @@
 
       <div class="filter-group">
         <label for="dateFrom">📅 Du:</label>
-        <input id="dateFrom" type="date" [(ngModel)]="dateFrom" (change)="applyFilters()" />
+        <input id="dateFrom" type="date" [(ngModel)]="dateFrom" (ngModelChange)="onDateFromChange($event)" />
       </div>
 
       <div class="filter-group">
         <label for="dateTo">Au:</label>
-        <input id="dateTo" type="date" [(ngModel)]="dateTo" (change)="applyFilters()" />
+        <input id="dateTo" type="date" [(ngModel)]="dateTo" (ngModelChange)="onDateToChange($event)" />
       </div>
     </div>
   </div>
 
-  @if (filteredPollutions.length > 0) {
-    <div class="pollutions-grid">
-      @for (pollution of filteredPollutions; track pollution.id) {
-        <div class="pollution-card" [class]="'severity-' + pollution.niveau">
-          <div class="card-header">
-            <h3>{{ pollution.titre }}</h3>
-            <div class="header-actions">
-              <button
-                class="btn-bookmark"
-                [class.bookmarked]="isBookmarked(pollution.id)"
-                (click)="toggleBookmark(pollution, $event)"
-                [title]="isBookmarked(pollution.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
-              >
-                {{ isBookmarked(pollution.id) ? '⭐' : '☆' }}
-              </button>
-              <span class="severity-badge" [class]="'severity-' + pollution.niveau">
-                {{ pollution.niveau }}
-              </span>
+  <!-- Indicateur de chargement -->
+  @if (isLoading) {
+    <div class="loading-indicator"><span class="spinner">⏳</span> Chargement...</div>
+  }
+
+  <!-- Utilisation du async pipe pour s'abonner à l'observable -->
+  @if (filteredPollutions$ | async; as filteredPollutions) {
+    @if (filteredPollutions.length > 0) {
+      <div class="pollutions-grid">
+        @for (pollution of filteredPollutions; track pollution.id) {
+          <div class="pollution-card" [class]="'severity-' + pollution.niveau">
+            <div class="card-header">
+              <h3>{{ pollution.titre }}</h3>
+              <div class="header-actions">
+                <button
+                  class="btn-bookmark"
+                  [class.bookmarked]="isBookmarked(pollution.id)"
+                  (click)="toggleBookmark(pollution, $event)"
+                  [title]="isBookmarked(pollution.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'"
+                >
+                  {{ isBookmarked(pollution.id) ? '⭐' : '☆' }}
+                </button>
+                <span class="severity-badge" [class]="'severity-' + pollution.niveau">
+                  {{ pollution.niveau }}
+                </span>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="info-row">
+                <span class="label">📂 Type:</span>
+                <span class="value">{{ pollution.type }}</span>
+              </div>
+
+              <div class="info-row">
+                <span class="label">📍 Localisation:</span>
+                <span class="value">{{ getLocationDisplay(pollution) }}</span>
+              </div>
+
+              <div class="info-row">
+                <span class="label">📅 Date:</span>
+                <span class="value">{{ pollution.dateObservation | date: 'shortDate' }}</span>
+              </div>
+
+              <div class="info-row">
+                <span class="label">👤 Déclarant:</span>
+                <span class="value user-badge">{{ getUserDisplay(pollution) }}</span>
+              </div>
+
+              <div class="description">
+                {{ pollution.description | slice: 0 : 120 }}{{ pollution.description.length > 120 ? '...' : '' }}
+              </div>
+
+              @if (pollution.photoUrl) {
+                <div class="photo-indicator">📷 Photo disponible</div>
+              }
+            </div>
+
+            <div class="card-actions">
+              <button class="btn-info" [routerLink]="['/pollutions/detail', pollution.id]">👁️ Voir</button>
+              <button class="btn-warning" [routerLink]="['/pollutions/edit', pollution.id]">✏️ Éditer</button>
+              <button class="btn-danger" (click)="deletePollution(pollution.id)">🗑️ Supprimer</button>
             </div>
           </div>
-
-          <div class="card-body">
-            <div class="info-row">
-              <span class="label">📂 Type:</span>
-              <span class="value">{{ pollution.type }}</span>
-            </div>
-
-            <div class="info-row">
-              <span class="label">📍 Lieu:</span>
-              <span class="value">{{ pollution.lieu }}</span>
-            </div>
-
-            <div class="info-row">
-              <span class="label">📅 Date:</span>
-              <span class="value">{{ pollution.dateObservation | date: 'short' }}</span>
-            </div>
-
-            <div class="description">
-              {{ pollution.description | slice: 0 : 120 }}{{ pollution.description.length > 120 ? '...' : '' }}
-            </div>
-          </div>
-
-          <div class="card-actions">
-            <button class="btn-info" [routerLink]="['/pollutions/detail', pollution.id]">👁️ Voir</button>
-            <button class="btn-warning" [routerLink]="['/pollutions/edit', pollution.id]">✏️ Éditer</button>
-            <button class="btn-danger" (click)="deletePollution(pollution.id)">🗑️ Supprimer</button>
-          </div>
+        }
+      </div>
+    } @else {
+      @if (!isLoading) {
+        <div class="no-data">
+          <p>😔 Aucune pollution trouvée</p>
+          <button class="btn-primary" routerLink="/pollutions/create">Créer la première déclaration</button>
         </div>
       }
-    </div>
-  } @else {
-    <div class="no-data">
-      <p>😔 Aucune pollution trouvée</p>
-      <button class="btn-primary" routerLink="/pollutions/create">Créer la première déclaration</button>
-    </div>
+    }
   }
 </div>

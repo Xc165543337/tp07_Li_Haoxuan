@@ -1,8 +1,8 @@
-import { Component, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core'
 import { CommonModule } from '@angular/common'
+import { Component, CUSTOM_ELEMENTS_SCHEMA, inject } from '@angular/core'
 import { Router } from '@angular/router'
+import { CreatePollutionPayload } from '../models/pollution.model'
 import { PollutionFormComponent } from '../pollution-form/pollution-form.component'
-import { PollutionDeclaration } from '../models/pollution.model'
 import { PollutionService } from '../services/pollution.service'
 import { ToastService } from '../services/toast.service'
 
@@ -19,23 +19,14 @@ export class PollutionCreateComponent {
   private readonly toastService = inject(ToastService)
   private readonly router = inject(Router)
 
-  newPollution: PollutionDeclaration = {
-    id: 0,
-    titre: '',
-    type: 'Air',
-    description: '',
-    dateObservation: new Date().toISOString().split('T')[0],
-    lieu: '',
-    niveau: 'Faible',
-    latitude: 0,
-    longitude: 0,
-  }
+  // No longer needed as the form component handles initialization internally
+  // The form is initialized with empty values
 
-  onSave(pollution: PollutionDeclaration): void {
-    this.pollutionService.create(pollution).subscribe({
-      next: () => {
+  onSave(payload: CreatePollutionPayload): void {
+    this.pollutionService.create(payload).subscribe({
+      next: created => {
         this.toastService.show('Pollution créée avec succès', 'success')
-        this.router.navigate(['/pollutions/list'])
+        this.router.navigate(['/pollutions/detail', created.id])
       },
       error: error => {
         this.toastService.show('Erreur lors de la création', 'error')

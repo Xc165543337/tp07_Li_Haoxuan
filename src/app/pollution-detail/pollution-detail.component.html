@@ -1,5 +1,5 @@
 <div class="detail-container">
-  @if (pollution) {
+  @if (pollution(); as poll) {
     <div class="detail-card">
       <div class="header">
         <h2>Récapitulatif de la Déclaration</h2>
@@ -10,9 +10,9 @@
       </div>
 
       <!-- Photo Section (if exists) -->
-      @if (pollution.photoUrl) {
+      @if (poll.photoUrl) {
         <div class="photo-section">
-          <img [src]="pollution.photoUrl" alt="Photo de la pollution" />
+          <img [src]="poll.photoUrl" alt="Photo de la pollution" />
         </div>
       }
 
@@ -25,22 +25,35 @@
           <div class="info-grid">
             <div class="info-item">
               <label for="title">Titre :</label>
-              <span id="title">{{ pollution.titre }}</span>
+              <span id="title">{{ poll.titre }}</span>
             </div>
             <div class="info-item">
               <label for="type-badge">Type de pollution :</label>
-              <span class="type-badge" [class]="'type-' + pollution.type.toLowerCase()">
-                {{ pollution.type }}
+              <span class="type-badge" [class]="'type-' + poll.type.toLowerCase()">
+                {{ poll.type }}
               </span>
             </div>
             <div class="info-item">
               <label for="date">Date d'observation :</label>
-              <span id="date">{{ pollution.dateObservation | date: 'medium' }}</span>
+              <span id="date">{{ poll.dateObservation | date: 'medium' }}</span>
             </div>
             <div class="info-item">
-              <label for="place">Lieu :</label>
-              <span id="place">{{ pollution.lieu }}</span>
+              <label for="niveau">Niveau de gravité :</label>
+              <span class="severity-badge" [class]="'severity-' + poll.niveau">
+                {{ poll.niveau }}
+              </span>
             </div>
+            @if (poll.utilisateur) {
+              <div class="info-item">
+                <label for="declarant">Déclaré par :</label>
+                <span id="declarant" class="user-info">
+                  👤 {{ poll.utilisateur.prenom }} {{ poll.utilisateur.nom }}
+                  @if (poll.utilisateur.nomUtilisateur) {
+                    <small>(&#64;{{ poll.utilisateur.nomUtilisateur }})</small>
+                  }
+                </span>
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -51,7 +64,7 @@
           <h3>Description</h3>
         </div>
         <div class="section-content">
-          <p class="description-text">{{ pollution.description }}</p>
+          <p class="description-text">{{ poll.description }}</p>
         </div>
       </div>
 
@@ -62,18 +75,43 @@
         </div>
         <div class="section-content">
           <div class="info-grid">
-            <div class="info-item full-width">
-              <label for="coordinates">Coordonnées GPS :</label>
-              <span class="coordinates" id="coordinates">{{ pollution.latitude }}, {{ pollution.longitude }}</span>
-            </div>
-            <div class="info-item">
-              <label for="latitude">Latitude :</label>
-              <span id="latitude">{{ pollution.latitude }}</span>
-            </div>
-            <div class="info-item">
-              <label for="longitude">Longitude :</label>
-              <span id="longitude">{{ pollution.longitude }}</span>
-            </div>
+            @if (poll.adresse) {
+              <div class="info-item full-width">
+                <label for="adresse">📍 Adresse :</label>
+                <span id="adresse" class="address-value">{{ poll.adresse }}</span>
+              </div>
+            }
+            @if (poll.latitude != null && poll.longitude != null) {
+              <div class="info-item full-width">
+                <label for="coordinates">🛰️ Coordonnées GPS :</label>
+                <span class="coordinates" id="coordinates">
+                  {{ poll.latitude.toFixed(6) }}, {{ poll.longitude.toFixed(6) }}
+                </span>
+              </div>
+              <div class="info-item">
+                <label for="latitude">Latitude :</label>
+                <span id="latitude">{{ poll.latitude }}</span>
+              </div>
+              <div class="info-item">
+                <label for="longitude">Longitude :</label>
+                <span id="longitude">{{ poll.longitude }}</span>
+              </div>
+              <div class="info-item full-width">
+                <a
+                  class="map-link"
+                  [href]="'https://www.google.com/maps?q=' + poll.latitude + ',' + poll.longitude"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  🗺️ Voir sur Google Maps
+                </a>
+              </div>
+            }
+            @if (!poll.adresse && poll.latitude == null) {
+              <div class="info-item full-width">
+                <span class="no-location">Aucune localisation fournie</span>
+              </div>
+            }
           </div>
         </div>
       </div>
@@ -95,11 +133,11 @@
       <!-- Actions -->
       <div class="actions">
         <button class="btn btn-secondary" routerLink="/pollutions/list">← Retour</button>
-        <button class="btn btn-warning" [routerLink]="['/pollutions/edit', pollution.id]">✏️ Éditer</button>
+        <button class="btn btn-warning" [routerLink]="['/pollutions/edit', poll.id]">✏️ Éditer</button>
         <button class="btn btn-danger" (click)="deletePollution()">🗑️ Supprimer</button>
       </div>
     </div>
-  } @else if (loading) {
+  } @else if (loading()) {
     <div class="loading-state">
       <div class="spinner"></div>
       <p>Chargement des détails...</p>

@@ -1,9 +1,15 @@
+/**
+ * User roles for authorization
+ */
+export type UserRole = 'user' | 'admin'
+
 export interface User {
   id: number
   nom: string
   prenom: string
   email: string
   nomUtilisateur: string
+  role?: UserRole
   dateCreation?: string
   dateModification?: string
 }
