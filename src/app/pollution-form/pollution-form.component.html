@@ -270,7 +270,7 @@
         @if (isValidImageUrl(form.get('photoUrl')?.value) && !photoPreviewError()) {
           <div class="image-preview">
             <img
-              [src]="form.get('photoUrl')?.value"
+              [src]="getPreviewUrl(form.get('photoUrl')?.value)"
               alt="Aperçu de la photo"
               (error)="onImageError()"
               (load)="onImageLoad()"

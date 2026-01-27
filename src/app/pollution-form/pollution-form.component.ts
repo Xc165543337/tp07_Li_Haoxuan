@@ -18,6 +18,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms'
+import { environment } from '../../environments/environment'
 import {
   LocationType,
   PhotoSourceType,
@@ -163,7 +164,7 @@ export class PollutionFormComponent implements OnInit {
 
   private detectPhotoSource(): void {
     const photoUrl = this.pollution?.photoUrl
-    if (photoUrl?.startsWith('/uploads/')) {
+    if (photoUrl?.startsWith('/photos/')) {
       this.photoSource.set('upload')
       this.uploadedPhotoUrl.set(photoUrl)
     } else {
@@ -292,8 +293,23 @@ export class PollutionFormComponent implements OnInit {
       (url.startsWith('http://') ||
         url.startsWith('https://') ||
         url.startsWith('data:image/') ||
-        url.startsWith('/uploads/'))
+        url.startsWith('/photos/'))
     )
+  }
+
+  /**
+   * Resolves the full URL for image preview.
+   * Backend returns relative paths like '/photos/filename.jpg' which need the full API URL prepended.
+   * The backend serves photos at: GET /api/pollution/photos/:filename
+   */
+  getPreviewUrl(url: string | undefined | null): string {
+    if (!url) return ''
+    // If it's a relative photo path, prepend the full API URL
+    // Backend route: /api/pollution/photos/:filename
+    if (url.startsWith('/photos/')) {
+      return `${environment.apiBaseUrl}/pollution${url}`
+    }
+    return url
   }
 
   onImageError(): void {
