@@ -224,9 +224,19 @@
 
         <!-- File Upload -->
         @if (showPhotoUpload()) {
-          <div class="form-group upload-zone">
+          <div
+            class="form-group upload-zone"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+          >
             @if (!uploadedPhotoUrl()) {
-              <label for="fileInput" class="upload-label" [class.uploading]="isUploading()">
+              <label
+                for="fileInput"
+                class="upload-label"
+                [class.uploading]="isUploading()"
+                [class.dragging]="isDragging()"
+              >
                 @if (isUploading()) {
                   <span class="spinner"></span>
                   <span>Téléchargement en cours...</span>

@@ -65,6 +65,7 @@ export class PollutionFormComponent implements OnInit {
   readonly isUploading = signal(false)
   readonly uploadedPhotoUrl = signal<string | null>(null)
   readonly photoPreviewError = signal(false)
+  readonly isDragging = signal(false)
 
   // Computed properties
   readonly isEditMode = computed(() => !!this.pollution?.id)
@@ -206,14 +207,40 @@ export class PollutionFormComponent implements OnInit {
   }
 
   // ─────────────────────────────────────────
-  // File Upload
+  // File Upload & Drag and Drop
   // ─────────────────────────────────────────
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement
     const file = input.files?.[0]
+    if (file) {
+      this.handleFile(file)
+    }
+  }
 
-    if (!file) return
+  onDragOver(event: DragEvent): void {
+    event.preventDefault()
+    event.stopPropagation()
+    this.isDragging.set(true)
+  }
 
+  onDragLeave(event: DragEvent): void {
+    event.preventDefault()
+    event.stopPropagation()
+    this.isDragging.set(false)
+  }
+
+  onDrop(event: DragEvent): void {
+    event.preventDefault()
+    event.stopPropagation()
+    this.isDragging.set(false)
+
+    const file = event.dataTransfer?.files?.[0]
+    if (file) {
+      this.handleFile(file)
+    }
+  }
+
+  private handleFile(file: File): void {
     // Validate file type
     if (!file.type.startsWith('image/')) {
       this.toastService.error('Veuillez sélectionner une image valide')
